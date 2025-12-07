@@ -1,4 +1,4 @@
-# PolyBet Voice
+# BetBoy
 
 Voice-powered Polymarket search. Speak a sports event and an AI agent finds the closest matching prediction market.
 
