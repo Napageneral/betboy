@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolyBet Voice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --accent-green: #00ff88;
+            --accent-red: #ff4466;
+            --accent-blue: #00aaff;
+            --text-primary: #ffffff;
+            --text-secondary: #8888aa;
+            --text-muted: #555566;
+            --border: #2a2a3a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb-1 {
+            top: -200px;
+            right: -100px;
+            background: var(--accent-green);
+        }
+
+        .glow-orb-2 {
+            bottom: -200px;
+            left: -100px;
+            background: var(--accent-blue);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .tagline {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        /* Voice button */
+        .voice-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .voice-btn {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-btn:hover {
+            border-color: var(--accent-green);
+            transform: scale(1.05);
+        }
+
+        .voice-btn.listening {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .voice-btn.listening .mic-icon {
+            fill: var(--accent-green);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .mic-icon {
+            width: 48px;
+            height: 48px;
+            fill: var(--text-secondary);
+            transition: fill 0.3s ease;
+        }
+
+        .voice-hint {
+            margin-top: 20px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .transcript {
+            margin-top: 16px;
+            padding: 12px 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--accent-green);
+            min-height: 20px;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .transcript:empty {
+            display: none;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin: 40px 0;
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Market card */
+        .market-card {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 40px;
+            animation: slideUp 0.4s ease;
+        }
+
+        .market-card.active {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .market-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            gap: 20px;
+        }
+
+        .market-question {
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .market-volume {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .market-explanation {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .betting-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .betting-option {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .betting-option:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-2px);
+        }
+
+        .betting-option.yes {
+            border-color: rgba(0, 255, 136, 0.3);
+        }
+
+        .betting-option.no {
+            border-color: rgba(255, 68, 102, 0.3);
+        }
+
+        .outcome-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .betting-option.yes .outcome-name {
+            color: var(--accent-green);
+        }
+
+        .betting-option.no .outcome-name {
+            color: var(--accent-red);
+        }
+
+        .outcome-price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .betting-option.yes .outcome-price {
+            color: var(--accent-green);
+        }
+
+        .betting-option.no .outcome-price {
+            color: var(--accent-red);
+        }
+
+        .outcome-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .market-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 16px 24px;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-green), #00cc6a);
+            color: var(--bg-primary);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-secondary);
+            background: var(--bg-tertiary);
+        }
+
+        /* Error state */
+        .error-msg {
+            display: none;
+            text-align: center;
+            padding: 24px;
+            background: rgba(255, 68, 102, 0.1);
+            border: 1px solid rgba(255, 68, 102, 0.3);
+            border-radius: 12px;
+            color: var(--accent-red);
+            margin-top: 24px;
+        }
+
+        .error-msg.active {
+            display: block;
+        }
+
+        /* No match state */
+        .no-match {
+            display: none;
+            text-align: center;
+            padding: 32px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-top: 24px;
+        }
+
+        .no-match.active {
+            display: block;
+        }
+
+        .no-match-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .no-match-text {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Recent searches */
+        .recent-section {
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border);
+        }
+
+        .recent-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .recent-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .recent-item {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .recent-item:hover {
+            border-color: var(--accent-green);
+            color: var(--text-primary);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 80px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        footer a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            .logo {
+                font-size: 2rem;
+            }
+
+            .voice-btn {
+                width: 120px;
+                height: 120px;
+            }
+
+            .market-question {
+                font-size: 1.2rem;
+            }
+
+            .outcome-price {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo">POLYBET</div>
+            <p class="tagline">Voice-powered Polymarket search</p>
+        </header>
+
+        <section class="voice-section">
+            <button class="voice-btn" id="voiceBtn">
+                <svg class="mic-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+            </button>
+            <p class="voice-hint">Click to speak your bet</p>
+            <div class="transcript" id="transcript"></div>
+        </section>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p class="loading-text">Searching Polymarket...</p>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <div class="no-match" id="noMatch">
+            <div class="no-match-icon">🔍</div>
+            <p class="no-match-text" id="noMatchText"></p>
+        </div>
+
+        <div class="market-card" id="marketCard">
+            <div class="market-header">
+                <h2 class="market-question" id="marketQuestion"></h2>
+                <span class="market-volume" id="marketVolume"></span>
+            </div>
+            <div class="market-explanation" id="marketExplanation"></div>
+            <div class="betting-options" id="bettingOptions"></div>
+            <div class="market-actions">
+                <a href="#" class="btn btn-primary" id="betBtn" target="_blank">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                    </svg>
+                    Open on Polymarket
+                </a>
+                <button class="btn btn-secondary" id="newSearchBtn">New Search</button>
+            </div>
+        </div>
+
+        <section class="recent-section" id="recentSection" style="display: none;">
+            <h3 class="recent-title">Recent Searches</h3>
+            <div class="recent-list" id="recentList"></div>
+        </section>
+
+        <footer>
+            <p>Powered by <a href="https://polymarket.com" target="_blank">Polymarket</a> & Claude AI</p>
+        </footer>
+    </div>
+
+    <script>
+        const voiceBtn = document.getElementById('voiceBtn');
+        const transcript = document.getElementById('transcript');
+        const loading = document.getElementById('loading');
+        const errorMsg = document.getElementById('errorMsg');
+        const noMatch = document.getElementById('noMatch');
+        const noMatchText = document.getElementById('noMatchText');
+        const marketCard = document.getElementById('marketCard');
+        const marketQuestion = document.getElementById('marketQuestion');
+        const marketVolume = document.getElementById('marketVolume');
+        const marketExplanation = document.getElementById('marketExplanation');
+        const bettingOptions = document.getElementById('bettingOptions');
+        const betBtn = document.getElementById('betBtn');
+        const newSearchBtn = document.getElementById('newSearchBtn');
+        const recentSection = document.getElementById('recentSection');
+        const recentList = document.getElementById('recentList');
+
+        let recognition = null;
+        let isListening = false;
+        let recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+
+        // Check for speech recognition support
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                voiceBtn.classList.add('listening');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                voiceBtn.classList.remove('listening');
+            };
+
+            recognition.onresult = (event) => {
+                const result = event.results[event.results.length - 1];
+                const text = result[0].transcript;
+                transcript.textContent = `"${text}"`;
+                
+                if (result.isFinal) {
+                    searchMarket(text);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                voiceBtn.classList.remove('listening');
+                if (event.error === 'not-allowed') {
+                    showError('Microphone access denied. Please allow microphone access.');
+                }
+            };
+        }
+
+        voiceBtn.addEventListener('click', () => {
+            if (!recognition) {
+                showError('Speech recognition is not supported in your browser. Try Chrome.');
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                hideResults();
+                recognition.start();
+            }
+        });
+
+        newSearchBtn.addEventListener('click', () => {
+            hideResults();
+            transcript.textContent = '';
+        });
+
+        function updateRecentSearches(query) {
+            recentSearches = recentSearches.filter(s => s !== query);
+            recentSearches.unshift(query);
+            recentSearches = recentSearches.slice(0, 5);
+            localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+            renderRecentSearches();
+        }
+
+        function renderRecentSearches() {
+            if (recentSearches.length === 0) {
+                recentSection.style.display = 'none';
+                return;
+            }
+
+            recentSection.style.display = 'block';
+            recentList.innerHTML = recentSearches.map(s => 
+                `<button class="recent-item" data-query="${s}">${s}</button>`
+            ).join('');
+
+            recentList.querySelectorAll('.recent-item').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const query = btn.dataset.query;
+                    transcript.textContent = `"${query}"`;
+                    searchMarket(query);
+                });
+            });
+        }
+
+        async function searchMarket(query) {
+            hideResults();
+            loading.classList.add('active');
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+
+                loading.classList.remove('active');
+
+                if (data.status === 'found') {
+                    updateRecentSearches(query);
+                    showMarket(data);
+                } else if (data.status === 'no_match') {
+                    noMatchText.textContent = data.message;
+                    noMatch.classList.add('active');
+                } else {
+                    showError(data.message || 'An error occurred');
+                }
+            } catch (err) {
+                loading.classList.remove('active');
+                showError('Network error. Make sure the server is running.');
+                console.error(err);
+            }
+        }
+
+        function showMarket(data) {
+            marketQuestion.textContent = data.market.question;
+            marketVolume.textContent = data.market.volume 
+                ? `$${Number(data.market.volume).toLocaleString()} volume` 
+                : '';
+            marketExplanation.textContent = data.explanation;
+
+            bettingOptions.innerHTML = '';
+            data.betting_info.forEach((info, idx) => {
+                const isYes = info.outcome.toLowerCase() === 'yes' || idx === 0;
+                const div = document.createElement('div');
+                div.className = `betting-option ${isYes ? 'yes' : 'no'}`;
+                div.innerHTML = `
+                    <div class="outcome-name">${info.outcome}</div>
+                    <div class="outcome-price">${info.price_cents}¢</div>
+                    <div class="outcome-label">${info.implied_probability} chance</div>
+                `;
+                bettingOptions.appendChild(div);
+            });
+
+            betBtn.href = data.market.url || '#';
+            marketCard.classList.add('active');
+        }
+
+        function hideResults() {
+            marketCard.classList.remove('active');
+            noMatch.classList.remove('active');
+            errorMsg.classList.remove('active');
+            loading.classList.remove('active');
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('active');
+        }
+
+        // Initialize
+        renderRecentSearches();
+    </script>
+</body>
+</html>
+
